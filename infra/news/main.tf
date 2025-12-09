@@ -1,6 +1,8 @@
 locals {
-  gcr_url = "us-central1-docker.pkg.dev/${var.project}/images"
+  # Use the configured region instead of hardcoding "us-central1"
+  gcr_url = "${var.region}-docker.pkg.dev/${var.project}/images"
 }
+
 
 # the dedicated service account that the compute instances will use
 resource "google_service_account" "joi-news-instances" {
@@ -8,16 +10,18 @@ resource "google_service_account" "joi-news-instances" {
   display_name = "${var.prefix} Service Account"
 }
 
-# grant the compute service account read access to Artifact Registry
+# Grant the compute service account read access to Artifact Registry
 resource "google_artifact_registry_repository_iam_binding" "viewer" {
-  provider = "google-beta"
+  provider   = google-beta
   repository = "images"
-  location = "us-central1"
-  role = "roles/artifactregistry.admin"
+  location   = var.region
+  role       = "roles/artifactregistry.reader"
+
   members = [
     "serviceAccount:${google_service_account.joi-news-instances.email}",
   ]
 }
+
 
 data "google_compute_network" "default" {
   name = "vpc-${var.prefix}"
@@ -31,7 +35,7 @@ data "google_compute_subnetwork" "subnet" {
 data "template_file" "front_end_init_script" {
   template = file("${path.module}/provision-front_end.sh")
   vars = {
-    docker_image = "${local.gcr_url}/front_end:latest"
+    docker_image         = "${local.gcr_url}/front_end:latest"
     quote_service_url    = "http://${google_compute_instance.quotes.network_interface.0.access_config.0.nat_ip}:8082",
     newsfeed_service_url = "http://${google_compute_instance.newsfeed.network_interface.0.access_config.0.nat_ip}:8081",
     static_url           = "https://storage.googleapis.com/${google_storage_bucket.news.name}"
@@ -145,7 +149,7 @@ resource "google_compute_instance" "newsfeed" {
   name         = "${var.prefix}-newsfeed"
   machine_type = var.machine_type
   zone         = "${var.region}-a"
-  tags         = [ "newsfeed"]
+  tags         = ["newsfeed"]
 
   boot_disk {
     initialize_params {
@@ -161,7 +165,7 @@ resource "google_compute_instance" "newsfeed" {
     }
   }
 
- metadata_startup_script = data.template_file.newsfeed_init_script.rendered
+  metadata_startup_script = data.template_file.newsfeed_init_script.rendered
 
   service_account {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
@@ -184,5 +188,17 @@ resource "google_compute_firewall" "newsfeed" {
 }
 
 output "frontend_url" {
-  value = "http://${google_compute_instance.front_end.network_interface.0.access_config.0.nat_ip}:8080"
+  description = "Public URL for the JOI News front-end"
+  value       = "http://${google_compute_instance.front_end.network_interface.0.access_config.0.nat_ip}:8080"
 }
+
+output "newsfeed_url" {
+  description = "Public URL for the newsfeed service"
+  value       = "http://${google_compute_instance.newsfeed.network_interface.0.access_config.0.nat_ip}:8081"
+}
+
+output "quotes_url" {
+  description = "Public URL for the quotes service"
+  value       = "http://${google_compute_instance.quotes.network_interface.0.access_config.0.nat_ip}:8082"
+}
+

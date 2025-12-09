@@ -18,7 +18,10 @@ test:
 	dojo "make _test"
 
 _%.test:
-	cd $* && python3 -m pip install -r requirements.txt && python3 -m pytest
+	cd $* && python3 -m pip install -r requirements.txt && PYTHONPATH=$$PWD python3 -m pytest
+
+runtests: _test
+	@echo "Run tests for all apps (uses the _test pattern targets)"
 
 login-gcloud:
 	echo "Logging into GCP using interviewee credentials."
@@ -33,9 +36,13 @@ $(STATIC_ARCHIVE): | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
+# %.docker:
+# 	$(eval IMAGE_NAME = $(subst -,_,$*))
+# 	cd ./$* && docker buildx build --load --platform linux/amd64 -t $(IMAGE_NAME) .
+
 %.docker:
 	$(eval IMAGE_NAME = $(subst -,_,$*))
-	cd ./$* && docker buildx build --load --platform linux/amd64 -t $(IMAGE_NAME) .
+	cd ./$* && docker build -t $(IMAGE_NAME) .
 
 %.push:
 	# gcloud auth activate-service-account --key-file infra/.interviewee-creds.json

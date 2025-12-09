@@ -1,11 +1,19 @@
 variable "machine_type" {
-  default = "f1-micro"
+  description = "Machine type used for JOI News compute instances"
+  type        = string
+  default     = "e2-micro"
 }
+
 variable "docker_image_tag" {
-  default = "latest"
+  description = "Tag of the Docker images to deploy"
+  type        = string
+  default     = "latest"
 }
+
 variable "prefix" {
-  default = "news4321"
+  description = "Prefix used for naming JOI News resources"
+  type        = string
+  default     = "news4321"
 }
 
 variable "service_account_scopes" {
@@ -19,6 +27,6 @@ variable "service_account_scopes" {
     "https://www.googleapis.com/auth/monitoring.write",
     "https://www.googleapis.com/auth/source.read_only",
     "https://www.googleapis.com/auth/devstorage.read_only",
-    "https://www.googleapis.com/auth/cloud-platform.read-only"
+    "https://www.googleapis.com/auth/cloud-platform.read_only"
   ]
 }

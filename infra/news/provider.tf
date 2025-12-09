@@ -1,25 +1,31 @@
 # Setup our GCP provider
 variable "region" {
-  default = "us-central1"
+  description = "Region where JOI News services will run"
+  type        = string
+  default     = "us-central1"
 }
 
 variable "project" {
+  description = "GCP project ID"
+  type        = string
 }
 
 provider "google" {
-  project     = var.project
-  region      = var.region
-  credentials = "../.interviewee-creds.json"
+  project = var.project
+  region  = var.region
 }
+
 provider "google-beta" {
-  project     = var.project
-  region      = var.region
-  credentials = "../.interviewee-creds.json"
+  project = var.project
+  region  = var.region
 }
 
 terraform {
   backend "gcs" {
-    prefix      = "news"
-    credentials = "../.interviewee-creds.json"
+    prefix = "news"
+    # El bucket se pasa en terraform init:
+    # terraform init -backend-config="bucket=joi-news-tf-state"
+    #
+    # Las credenciales vienen de ADC (gcloud o GOOGLE_APPLICATION_CREDENTIALS)
   }
 }
